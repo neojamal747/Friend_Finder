@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+	<head>
+ 		<!-- Meta tag for bootstrap scaling --><meta name="viewport" content="width=device-width, initial-scale=1">
+		<!-- jQuery --><script src="https://code.jquery.com/jquery-2.2.3.js" integrity="sha256-laXWtGydpwqJ8JA+X9x2miwmaiKhn8tVmOVEigRNtP4=" crossorigin="anonymous"></script>
+		<!-- Bootstrap JS --> <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+		<!-- Bootstrap CSS --><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+		<!-- My CSS --><link rel="stylesheet" type="text/css" href="...">
+		<title>Survey Questions</title>
+	</head>
+
+	<body>
+		<div class="container-fluid">
+			<h1 class = "page-header">
+				Survey Questions
+			</h1>
+			<h2 class = "page-header">
+				About You
+			</h2>
+			<form>
+				<div class="form-group" id="nameDiv">
+					<label for="name">Your Name (Required)</label>
+					<input type="text" class="form-control" id="nameInput" placeholder="Name">
+				</div>
+				<div class="form-group" id="photoDiv">
+					<label for="photo">Link to Photo Image (Required)</label>
+					<input type="url" class="form-control" id="urlInput" placeholder="Image URL">
+				</div>
+				<h3>
+					Please rank how much you agree with each of the following 10 statements
+				</h3>
+				<h4>
+					"1" = "Strongly Disagree" <---> "5" = "Strongly Agree"
+				</h4>
+				
+			</form>
+		</div>
+
+		<div class="modal fade" tabindex="-1" role="dialog" id="matchModal">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">Best Match</h4>
+					</div>
+					<div class="modal-body">
+						<h2 id="matchName"></h2>
+						<img id="matchIMG">
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					</div>
+				</div><!-- /.modal-content -->
+			</div><!-- /.modal-dialog -->
+		</div><!-- /.modal -->
+
+		<!-- My JS --><script type="text/javascript">
+			$(document).ready(function(){
+				var arr;
+				$.get("api/questions", function(data) {
+					console.log(data);
+					makeSurvey(data);
+				});
+			});
+
+			$(".btn-default").on("click", function(event){ 
+				var userName = $("#nameInput").val();
+				var userPhoto = $("#urlInput").val();
+				var userAnswers = [];
+				for (var i = 1; i <= 10; i++){
+					var grabText = "input[name=options" + i +"]:checked";
+					var q = $(grabText).val();
+					userAnswers.push(q);
+				}
+
+				var newFriendObj = {
+					name: userName, 
+					photoURL: userPhoto, 
+					scores: userAnswers
+				}
+
+				// var q1 = $("input[name=options1]:checked").val();
+				console.log("newFriendObj: " + JSON.stringify(newFriendObj, null, 2))
+
+				$.post("/api/friends", newFriendObj, function(response){
+					console.log(".post response: " + JSON.stringify(response, null, 2));
+					modalIt(response.name, response.photoURL);
+					// $("#testModal").modal("show");
+				});
+
+				return false;
+			});
+
+			function modalIt(name, photo){
+				//Select Name and Image regions in the modal form
+				var modalMatchName = $("#matchName");
+				var modalIMG = $("#matchIMG");
+
+				//Attach the name and image of the user's matched Friend
+				modalMatchName.text(name);
+				modalIMG.attr({
+					src: photo,
+					alt: name
+				});
+
+				//Activate the modal
+				console.log("go modal!");
+				$("#matchModal").modal("show");
+			}
+
+			function makeSurvey(inputArray){
+				var radioDiv = $("<div>");
+				var button = $("<button>").attr({
+					type:"submit",
+					class:"btn btn-default"
+				});
+				button.text("Submit");
+
+				inputArray.forEach(function(currentValue, index, array){
+					var questionNumber = index+1;
+					var main = $("<div class='questionsDiv'>");
+					var h3 = $("<h3>").text("Statement " + questionNumber);
+					var h4 = $("<h4>").text(currentValue);
+					main.append(h3);
+					main.append(h4);
+
+					for (var i = 1; i <= 5; i++){
+					  var label = $("<label class='radio-inline'>");
+					  var input = $("<input>").attr({
+					    type:"radio",
+					    name: "options" + questionNumber,
+					    value: i
+					  })
+
+					  label.append(input);
+					  main.append(label);
+					}  
+					radioDiv.append(main);
+				})
+
+			  $("form").append(radioDiv);
+			  $("form").append($("<br>"));
+			  $("form").append(button);
+			  console.log("makeSurvey Done")
+			}
+		</script> 
+	</body>
+</html>
